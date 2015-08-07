@@ -20,7 +20,16 @@ def exportRSS(Signs):
     #fg.atom_file('atom.xml')
 
 def getNew(Signs):
-    print "empty"
+    #Read in previously saved JSON file containing serialized Dict of Signs
+    json_file = open('signs.json')
+    json_str = json_file.read()
+
+    json_data = json.loads(json_str.encode('ascii','ignore').translate(None, '\n\t\r\u'))
+    print json_data
+
+    #Find new items
+    #with open('signs.json', 'w') as fileOpen:
+    #    json.dump(Signs, fileOpen)
 
 
 def getSigns():
@@ -39,18 +48,16 @@ def getSigns():
             cells = row.findChildren('td')
             Signs[(cells[0].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')] = (cells[1].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')
     del Signs['Street Name']
-
-    with open('signs.json', 'w') as fileOpen:
-        json.dump(Signs, fileOpen)
-
     return Signs
 
 
 def main():
 
+
     Signs = getSigns()
-    createRSS()
-    exportRSS(Signs)
+    getNew(Signs)
+    #createRSS()
+    #exportRSS(Signs)
 
 
 
