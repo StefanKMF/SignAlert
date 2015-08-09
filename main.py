@@ -13,30 +13,48 @@ def createRSS():
     fg.language('en')
     rssfeed = fg.rss_str(pretty=True)
 
-def addToFeed(Signs):
+def newToFeed(Signs):
     for sign in Signs:
         fe = fg.add_entry()
         fe.title(sign + ' Posted')
-        
+
         #Get local time and add UTC information.
         local_system_time = datetime.datetime.utcnow()
         local_system_utc = pytz.utc.localize(local_system_time)
 
         fe.pubdate(local_system_utc)
-    fg.rss_file('rss.xml')
-    #fg.atom_file('atom.xml') #Still a bug here :(
+
+def oldToFeed(Signs):
+    for sign in Signs:
+        fe = fg.add_entry()
+        fe.title(sign[0])
+        fe.pubdate(sign[1])
+
 
 def updateFeed():
     feed = BeautifulSoup(open('rss.xml'))
     #Get the information from the previous feed.
-    print feed.find('title').getText()
-    print feed.link.nextSibling
-    print feed.find('description').getText()
+    fg.title(feed.find('title').getText())
+    fg.link(href=feed.link.nextSibling)
+    fg.subtitle(feed.find('description').getText())
+    fg.language('en')
+    rssfeed = fg.rss_str(pretty=True)
 
+    oldSigns = []
+
+    #Get the items in the feed
+    items = feed.findChildren('item')
+    for item in items:
+        oldSigns.append((item.find('title').getText(), item.find('pubdate').getText()))
+
+    #Add old items to the new feed.
+    oldToFeed(oldSigns)
+
+    #print oldSigns
 
 def exportFeed():
     fg.rss_file('rss.xml')
-
+    #fg.atom_file('atom.xml') #Still a bug here :(
 
 def getNew(Signs):
     #Read in previously saved JSON file containing serialized Dict of Signs
@@ -78,10 +96,10 @@ def main():
 
 
     Signs = getSigns()
-    #updateFeed()
-    createRSS()
-    addToFeed(Signs)
-    #exportFeed()
+    updateFeed()
+    #createRSS()
+    #newToFeed(Signs)
+    exportFeed()
     #createRSS()
     #exportToFeed(Signs)
 
