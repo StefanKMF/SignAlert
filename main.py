@@ -24,6 +24,7 @@ def newToFeed(Signs):
 
         fe.pubdate(local_system_utc)
 
+
 def oldToFeed(Signs):
     for sign in Signs:
         fe = fg.add_entry()
@@ -95,13 +96,15 @@ def getSigns():
 def main():
 
 
-    Signs = getSigns()
-    updateFeed()
-    #createRSS()
-    #newToFeed(Signs)
-    exportFeed()
-    #createRSS()
-    #exportToFeed(Signs)
+    #createRSS() #Only used if no previous RSS Feed
+
+    newSigns = getSigns() #Get New Signs from Website
+    updateFeed() #Get current Feed
+
+    newToFeed(newSigns) #Add New Signs to Feed
+
+
+    exportFeed() #Write Feed to RSS & Atom files.
 
 
 
