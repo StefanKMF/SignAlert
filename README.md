@@ -5,3 +5,4 @@ Email Notification and RSS Feed for Decommissioned signs in Ottawa
 - Python 2.7
 - BeautifulSoup
 - feedgen
+- pytz
