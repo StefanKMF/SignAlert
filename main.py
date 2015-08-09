@@ -1,9 +1,10 @@
 from bs4 import BeautifulSoup
 from feedgen.feed import FeedGenerator
-import urllib2, json
+import urllib2, json, datetime, pytz
+
+
 
 fg = FeedGenerator()
-
 
 def createRSS():
     fg.title('Decommissioned Street Sign Feed')
@@ -12,12 +13,30 @@ def createRSS():
     fg.language('en')
     rssfeed = fg.rss_str(pretty=True)
 
-def exportRSS(Signs):
+def addToFeed(Signs):
     for sign in Signs:
         fe = fg.add_entry()
         fe.title(sign + ' Posted')
+        
+        #Get local time and add UTC information.
+        local_system_time = datetime.datetime.utcnow()
+        local_system_utc = pytz.utc.localize(local_system_time)
+
+        fe.pubdate(local_system_utc)
     fg.rss_file('rss.xml')
-    #fg.atom_file('atom.xml')
+    #fg.atom_file('atom.xml') #Still a bug here :(
+
+def updateFeed():
+    feed = BeautifulSoup(open('rss.xml'))
+    #Get the information from the previous feed.
+    print feed.find('title').getText()
+    print feed.link.nextSibling
+    print feed.find('description').getText()
+
+
+def exportFeed():
+    fg.rss_file('rss.xml')
+
 
 def getNew(Signs):
     #Read in previously saved JSON file containing serialized Dict of Signs
@@ -25,12 +44,16 @@ def getNew(Signs):
     json_str = json_file.read()
 
     json_data = json.loads(json_str.encode('ascii','ignore').translate(None, '\n\t\r\u'))
-    print json_data
 
-    #Find new items
-    #with open('signs.json', 'w') as fileOpen:
-    #    json.dump(Signs, fileOpen)
+    newSigns = {}
+    for i in Signs:
+        if i not in json_data:
+            newSigns[i] = Signs[i]
+    return newSigns
 
+def exportToJSON(Signs):
+    with open('signs.json', 'w+') as fileOpen:
+        json.dump(Signs, fileOpen)
 
 def getSigns():
 
@@ -55,9 +78,12 @@ def main():
 
 
     Signs = getSigns()
-    getNew(Signs)
+    #updateFeed()
+    createRSS()
+    addToFeed(Signs)
+    #exportFeed()
     #createRSS()
-    #exportRSS(Signs)
+    #exportToFeed(Signs)
 
 
 
