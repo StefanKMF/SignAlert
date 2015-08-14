@@ -1,6 +1,7 @@
+#!/usr/bin/python
 from bs4 import BeautifulSoup
 from feedgen.feed import FeedGenerator
-import urllib2, json, datetime, pytz
+import urllib2, json, datetime, pytz, subprocess, os
 
 
 
@@ -16,7 +17,7 @@ def createRSS():
 def newToFeed(Signs):
     for sign in Signs:
         fe = fg.add_entry()
-        fe.title(sign + ' Posted')
+        fe.title(sign + ' Posted, ' + Signs[sign] + ' Available.')
 
         #Get local time and add UTC information.
         local_system_time = datetime.datetime.utcnow()
@@ -33,7 +34,7 @@ def oldToFeed(Signs):
 
 
 def updateFeed():
-    feed = BeautifulSoup(open('rss.xml'))
+    feed = BeautifulSoup(open('rss.xml'), "lxml")
     #Get the information from the previous feed.
     fg.title(feed.find('title').getText())
     fg.link(href=feed.link.nextSibling)
@@ -51,7 +52,6 @@ def updateFeed():
     #Add old items to the new feed.
     oldToFeed(oldSigns)
 
-    #print oldSigns
 
 def exportFeed():
     fg.rss_file('rss.xml')
@@ -79,7 +79,7 @@ def getSigns():
     response = urllib2.urlopen('http://ottawa.ca/en/residents/transportation-and-parking/traffic/decommissioned-street-name-signs')
     html = response.read()
 
-    soup = BeautifulSoup(html)
+    soup = BeautifulSoup(html, "html.parser")
     tables = soup.findAll("table")
 
     Signs = {}
@@ -95,18 +95,17 @@ def getSigns():
 
 def main():
 
+    if not os.path.isfile("rss.xml"):
+        createRSS() #Only used if no previous RSS Feed
+        exportFeed() #Generate feed files.
 
-    #createRSS() #Only used if no previous RSS Feed
 
     newSigns = getSigns() #Get New Signs from Website
     updateFeed() #Get current Feed
-
     newToFeed(newSigns) #Add New Signs to Feed
+    exportFeed() #Write Feed to local RSS & Atom files.
 
-
-    exportFeed() #Write Feed to RSS & Atom files.
-
-
+    subprocess.call("./exportRSS.sh", shell=True) #Calls Bash Script to send RSS & Atom file to webserver.
 
 if __name__ == "__main__":
     main()
