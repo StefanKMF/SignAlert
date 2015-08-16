@@ -30,10 +30,10 @@ def exportForTwitter(newSigns):
 
 def getNew(Signs):
     #Read in previously saved JSON file containing serialized Dict of Signs
-    json_file = open('signs.json')
-    json_str = json_file.read()
-
-    json_data = json.loads(json_str.encode('ascii','ignore').translate(None, '\n\t\r\u'))
+    with open('signs.json', 'r') as fileOpen:
+        json_str = fileOpen.read()
+        json_data = json.loads(json_str.encode('ascii','ignore').translate(None, '\n\t\r\u'))
+        fileOpen.close()
 
     newSigns = {}
     for i in Signs:
