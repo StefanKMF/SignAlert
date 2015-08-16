@@ -14,12 +14,57 @@ def createRSS():
     fg.language('en')
     rssfeed = fg.rss_str(pretty=True)
 
+def exportFeed():
+    fg.rss_file('rss.xml')
+    #fg.atom_file('atom.xml') #Still a bug here :(
+
+def exportToJSON(Signs):
+    with open('signs.json', 'w+') as fileOpen:
+        json.dump(Signs, fileOpen)
+        fileOpen.close()
+
+def exportForTwitter(newSigns):
+    with open('botfood.json','w+') as fileOpen:
+        json.dump(newSigns, fileOpen)
+        fileOpen.close()
+
+def getNew(Signs):
+    #Read in previously saved JSON file containing serialized Dict of Signs
+    json_file = open('signs.json')
+    json_str = json_file.read()
+
+    json_data = json.loads(json_str.encode('ascii','ignore').translate(None, '\n\t\r\u'))
+
+    newSigns = {}
+    for i in Signs:
+        if i not in json_data:
+            newSigns[i] = Signs[i]
+
+    return newSigns
+
+def getSigns():
+
+    response = urllib2.urlopen('http://ottawa.ca/en/residents/transportation-and-parking/traffic/decommissioned-street-name-signs')
+    html = response.read()
+
+    soup = BeautifulSoup(html, "html.parser")
+    tables = soup.findAll("table")
+
+    Signs = {}
+
+    for x in xrange(0,len(tables)):
+        rows = tables[x].findChildren(['tr'])
+        for row in rows:
+            cells = row.findChildren('td')
+            Signs[(cells[0].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')] = (cells[1].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')
+    del Signs['Street Name']
+    return Signs
+
 def newToFeed(Signs):
     for sign in Signs:
         fe = fg.add_entry()
         fe.title(sign + ' Posted, ' + Signs[sign] + ' Available.')
 
-        #Get local time and add UTC information.
         local_system_time = datetime.datetime.utcnow()
         local_system_utc = pytz.utc.localize(local_system_time)
 
@@ -53,45 +98,6 @@ def updateFeed():
     oldToFeed(oldSigns)
 
 
-def exportFeed():
-    fg.rss_file('rss.xml')
-    #fg.atom_file('atom.xml') #Still a bug here :(
-
-def getNew(Signs):
-    #Read in previously saved JSON file containing serialized Dict of Signs
-    json_file = open('signs.json')
-    json_str = json_file.read()
-
-    json_data = json.loads(json_str.encode('ascii','ignore').translate(None, '\n\t\r\u'))
-
-    newSigns = {}
-    for i in Signs:
-        if i not in json_data:
-            newSigns[i] = Signs[i]
-    return newSigns
-
-def exportToJSON(Signs):
-    with open('signs.json', 'w+') as fileOpen:
-        json.dump(Signs, fileOpen)
-
-def getSigns():
-
-    response = urllib2.urlopen('http://ottawa.ca/en/residents/transportation-and-parking/traffic/decommissioned-street-name-signs')
-    html = response.read()
-
-    soup = BeautifulSoup(html, "html.parser")
-    tables = soup.findAll("table")
-
-    Signs = {}
-
-    for x in xrange(0,len(tables)):
-        rows = tables[x].findChildren(['tr'])
-        for row in rows:
-            cells = row.findChildren('td')
-            Signs[(cells[0].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')] = (cells[1].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')
-    del Signs['Street Name']
-    return Signs
-
 
 def main():
 
@@ -99,11 +105,13 @@ def main():
         createRSS() #Only used if no previous RSS Feed
         exportFeed() #Generate feed files.
 
-
-    newSigns = getSigns() #Get New Signs from Website
-    updateFeed() #Get current Feed
+    Signs = getSigns() #Get New Signs from Website
+    updateFeed() #Get current feed.
+    newSigns = getNew(Signs) #Get the new signs.
     newToFeed(newSigns) #Add New Signs to Feed
     exportFeed() #Write Feed to local RSS & Atom files.
+    exportToJSON(Signs) #Export current list of signs (New + Old) to JSON File.
+    exportForTwitter(newSigns) #Export new signs for Twitter Bot.
 
     subprocess.call("./exportRSS.sh", shell=True) #Calls Bash Script to send RSS & Atom file to webserver.
 
