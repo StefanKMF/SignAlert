@@ -44,21 +44,34 @@ def getNew(Signs):
 
 def getSigns():
 
-    response = urllib2.urlopen('http://ottawa.ca/en/residents/transportation-and-parking/traffic/decommissioned-street-name-signs')
-    html = response.read()
+    req = Request("http://ottawa.ca/en/residents/transportation-and-parking/traffic/decommissioned-street-name-signs")
 
-    soup = BeautifulSoup(html, "html.parser")
-    tables = soup.findAll("table")
+    try:
+        response = urllib2.urlopen(req)
+    except URLErroer as e:
+        if hassattr(e, 'reason'):
+            print 'Failed to reach the server.'
+            print 'Reason;' , e.reason
+            return False
+        elif hasattr(e, 'code'):
+            print 'Server could not fulfill request.'
+            print 'Error code: ', e.code
+            return False
+    else:
+        html = response.read()
 
-    Signs = {}
+        soup = BeautifulSoup(html, "html.parser")
+        tables = soup.findAll("table")
 
-    for x in xrange(0,len(tables)):
-        rows = tables[x].findChildren(['tr'])
-        for row in rows:
-            cells = row.findChildren('td')
-            Signs[(cells[0].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')] = (cells[1].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')
-    del Signs['Street Name']
-    return Signs
+        Signs = {}
+
+        for x in xrange(0,len(tables)):
+            rows = tables[x].findChildren(['tr'])
+            for row in rows:
+                cells = row.findChildren('td')
+                Signs[(cells[0].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')] = (cells[1].get_text().encode('ascii','ignore')).translate(None, '\n\t\r')
+        del Signs['Street Name']
+        return Signs
 
 def newToFeed(Signs):
     for sign in Signs:
@@ -106,14 +119,18 @@ def main():
         exportFeed() #Generate feed files.
 
     Signs = getSigns() #Get New Signs from Website
-    updateFeed() #Get current feed.
-    newSigns = getNew(Signs) #Get the new signs.
-    newToFeed(newSigns) #Add New Signs to Feed
-    exportFeed() #Write Feed to local RSS & Atom files.
-    exportToJSON(Signs) #Export current list of signs (New + Old) to JSON File.
-    exportForTwitter(newSigns) #Export new signs for Twitter Bot.
+    if Signs == False:
+        #Error, do nothing.
+        pass
+    else:    
+        updateFeed() #Get current feed.
+        newSigns = getNew(Signs) #Get the new signs.
+        newToFeed(newSigns) #Add New Signs to Feed
+        exportFeed() #Write Feed to local RSS & Atom files.
+        exportToJSON(Signs) #Export current list of signs (New + Old) to JSON File.
+        exportForTwitter(newSigns) #Export new signs for Twitter Bot.
 
-    subprocess.call("./exportRSS.sh", shell=True) #Calls Bash Script to send RSS & Atom file to webserver.
+        subprocess.call("./exportRSS.sh", shell=True) #Calls Bash Script to send RSS & Atom file to webserver.
 
 if __name__ == "__main__":
     main()
